@@ -8,7 +8,7 @@
   <style>
     body {
       font-family: 'Orbitron', sans-serif;
-      background: linear-gradient(135deg, #727171, #3b78fa, #727171);
+      background: #000;   /* ✅ Pure Black Background */
       color: #fff;
       display: flex;
       justify-content: center;
@@ -157,13 +157,11 @@
       <button id="toggleBot" class="start" onclick="toggleBot()">▶ Start Bot</button>
     </div>
 
-    <!-- ✅ Telegram Toggle Button -->
     <div style="text-align:center; margin-top:10px;">
       <button id="toggleTelegram" class="start" onclick="toggleTelegram()">🔔 Telegram: ON</button>
     </div>
 
     <div class="history">
-      <!-- ✅ Calculator Button -->
       <div style="text-align:center; margin-bottom:10px;">
         <a href="https://moneymanegementcalculator.netlify.app/" target="_blank">
           <button class="start">Money Management</button>
@@ -176,12 +174,11 @@
         Total: 0 | WIN: 0 | LOSS: 0
       </div>
 
-      <!-- ✅ Confidence Trend Chart -->
+      <!-- ✅ Chart -->
       <canvas id="confidenceChart" style="margin-top:15px; height:200px;"></canvas>
     </div>
   </div>
 
-  <!-- ✅ Bip সাউন্ড -->
   <audio id="beepSound" src="https://actions.google.com/sounds/v1/alarms/beep_short.ogg"></audio>
 
   <script>
@@ -192,42 +189,6 @@
     let canSendSignal = true;
     let confidenceChart = null;
 
-    // ✅ Telegram Config
-    const BOT_TOKEN = "8417450493:AAEUVGDiJIA1-xMhUdDFVwaFbKtO4jnhnvc";
-    const CHAT_ID = "-1002765246201";
-
-    async function sendToTelegram(message) {
-      if (!telegramEnabled) return; 
-      try {
-        await fetch(`https://api.telegram.org/bot${BOT_TOKEN}/sendMessage`, {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            chat_id: CHAT_ID,
-            text: message,
-            parse_mode: "HTML"
-          })
-        });
-      } catch (err) {
-        console.error("Telegram error:", err);
-      }
-    }
-
-    function toggleTelegram() {
-      telegramEnabled = !telegramEnabled;
-      const btn = document.getElementById("toggleTelegram");
-      if (telegramEnabled) {
-        btn.textContent = "🔔 Telegram: ON";
-        btn.classList.remove("stop");
-        btn.classList.add("start");
-      } else {
-        btn.textContent = "🔕 Telegram: OFF";
-        btn.classList.remove("start");
-        btn.classList.add("stop");
-      }
-    }
-
-    // ✅ Init Chart
     function initChart() {
       const ctx = document.getElementById("confidenceChart").getContext("2d");
       confidenceChart = new Chart(ctx, {
@@ -242,7 +203,8 @@
             borderWidth: 2,
             fill: true,
             tension: 0.3,
-            pointRadius: 5
+            pointRadius: 5,
+            pointBackgroundColor: []
           }]
         },
         options: {
@@ -265,12 +227,11 @@
         if (latest.issueNumber === lastFetched) return;
         lastFetched = latest.issueNumber;
 
-        // Next Period
         const nextPeriod = (BigInt(latest.issueNumber) + 1n).toString();
         document.getElementById("period").textContent = nextPeriod;
 
-        // ✅ শেষ 40 টা হিস্টোরি দেখে ট্রেন্ড
-        const historyList = data?.data?.list?.slice(0, 40) || [];
+        // ✅ শেষ 10 হিস্টোরি
+        const historyList = data?.data?.list?.slice(0, 10) || [];
         let bigCount = 0, smallCount = 0;
         historyList.forEach(item => {
           let num = Number(item.number);
@@ -278,7 +239,6 @@
           else smallCount++;
         });
 
-        // ✅ Prediction
         let prediction = "BIG";
         if (smallCount > bigCount) prediction = "SMALL";
         else if (smallCount === bigCount) {
@@ -286,17 +246,13 @@
           prediction = lastNum >= 5 ? "SMALL" : "BIG";
         }
 
-        // ✅ Confidence %
-        let total = historyList.length;
-        let confidence = Math.round((Math.max(bigCount, smallCount) / total) * 100);
+        let confidence = Math.round((Math.max(bigCount, smallCount) / historyList.length) * 100);
 
-        // Update UI
         const predEl = document.getElementById("prediction");
         predEl.textContent = prediction;
         predEl.className = "prediction " + (prediction === "BIG" ? "big" : "small");
         document.getElementById("confidence").textContent = confidence + "%";
 
-        // Update History Result
         if (historyData.length > 0) {
           let lastItem = historyData[0];
           if (lastItem.resultStatus === "Waiting" && lastItem.period === latest.issueNumber) {
@@ -304,21 +260,9 @@
             lastItem.actual = latest.number;
             lastItem.resultStatus = (lastItem.prediction === actual) ? "WIN" : "LOSS";
             canSendSignal = true;
-
-            const color = (Number(latest.number) % 2 === 0) ? "red" : "green";
-            const resultMsg = 
-`✅ Wingo Result
-━━━━━━━━━━━━━━
-📌 Period: ${latest.issueNumber}
-🔢 Number: ${latest.number}
-🎨 Color: ${color}
-🎯 Result: ${lastItem.resultStatus}
-━━━━━━━━━━━━━━`;
-            sendToTelegram(resultMsg);
           }
         }
 
-        // ✅ New Signal
         if (canSendSignal) {
           const newPrediction = {
             period: nextPeriod,
@@ -327,17 +271,6 @@
             resultStatus: "Waiting"
           };
           historyData.unshift(newPrediction);
-
-          const signalMsg =
-`🎯 Send Signal
-━━━━━━━━━━━━━━
-✅ 1M Market ✅
-📌 Prediction Period: ${nextPeriod}
-📊 Prediction Signal: ${prediction}
-📈 Confidence: ${confidence}%
-━━━━━━━━━━━━━━
-🔗 আমার সাপোর্ট লিংক (https://t.me/FORID0KSUPPORT)`;
-          sendToTelegram(signalMsg);
           canSendSignal = false;
         }
 
@@ -375,25 +308,22 @@
       document.getElementById("statsBox").textContent =
         `TOTAL: ${total} | WIN: ${win} | LOSS: ${loss}`;
 
-      // ✅ Update Chart
+      // ✅ চার্ট আপডেট
       if (confidenceChart) {
         const last10 = historyData.slice(0, 10).reverse();
         confidenceChart.data.labels = last10.map(h => h.period);
         confidenceChart.data.datasets[0].data = last10.map(h => h.confidence || 0);
-
         confidenceChart.data.datasets[0].pointBackgroundColor = last10.map(h => {
           if (h.resultStatus === "WIN") return "#00ff88";   // সবুজ
           if (h.resultStatus === "LOSS") return "#ff4444";  // লাল
-          return "#ffd966"; // Waiting → হলুদ
+          return "#ffd966"; // Waiting
         });
-
         confidenceChart.update();
       }
     }
 
     function toggleBot() {
       const btn = document.getElementById("toggleBot");
-
       if (!botInterval) {
         fetchData();
         botInterval = setInterval(fetchData, 60000);

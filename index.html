@@ -269,8 +269,8 @@
         const nextPeriod = (BigInt(latest.issueNumber) + 1n).toString();
         document.getElementById("period").textContent = nextPeriod;
 
-        // ✅ শেষ 40 টা হিস্টোরি দেখে ট্রেন্ড
-        const historyList = data?.data?.list?.slice(0, 40) || [];
+        // ✅ শেষ 10 টা হিস্টোরি দেখে ট্রেন্ড
+        const historyList = data?.data?.list?.slice(0, 10) || [];
         let bigCount = 0, smallCount = 0;
         historyList.forEach(item => {
           let num = Number(item.number);

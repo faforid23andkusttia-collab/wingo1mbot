@@ -1,0 +1,417 @@
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>COLOR ZONE</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@500;700&display=swap" rel="stylesheet">
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <style>
+    body {
+      font-family: 'Orbitron', sans-serif;
+      background: linear-gradient(135deg, #727171, #3b78fa, #727171);
+      color: #fff;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      height: 100vh;
+      margin: 0;
+    }
+    .card {
+      background: rgba(255, 255, 255, 0.08);
+      padding: 25px;
+      border-radius: 20px;
+      box-shadow: 0 0 25px rgb(250, 7, 7);
+      width: 430px;
+      display: flex;
+      flex-direction: column;
+      max-height: 95vh;
+      backdrop-filter: blur(10px);
+      border: 1px solid rgba(255, 255, 255, 0.15);
+    }
+    .title {
+      font-size: 26px;
+      font-weight: bold;
+      margin-bottom: 12px;
+      color: #00ffcc;
+      text-align: center;
+      letter-spacing: 1.5px;
+      text-shadow: 0 0 8px #00ffcc;
+    }
+    .period {
+      font-size: 18px;
+      margin: 8px 0;
+      color: #ffe600;
+      text-align: center;
+    }
+    .prediction {
+      font-size: 32px;
+      font-weight: bold;
+      margin: 12px 0;
+      text-align: center;
+      text-shadow: 0 0 12px rgba(255,255,255,0.7);
+    }
+    .prediction.big { color: #00ff88; text-shadow: 0 0 15px #00ff88; }
+    .prediction.small { color: #ff4444; text-shadow: 0 0 15px #ff4444; }
+    .confidence {
+      margin: 8px 0;
+      font-size: 16px;
+      color: #ffd966;
+      text-align: center;
+    }
+    .buttons {
+      margin-top: 12px;
+      display: flex;
+      justify-content: center;
+    }
+    button {
+      padding: 10px 20px;
+      border: none;
+      border-radius: 10px;
+      font-weight: bold;
+      cursor: pointer;
+      color: #fff;
+      font-size: 15px;
+      transition: all 0.3s ease;
+    }
+    .start {
+      background: linear-gradient(135deg, #00c853, #00e676);
+      box-shadow: 0 0 10px rgba(0, 255, 120, 0.6);
+    }
+    .start:hover {
+      transform: scale(1.05);
+      box-shadow: 0 0 20px rgba(0, 255, 120, 0.9);
+    }
+    .stop {
+      background: linear-gradient(135deg, #d50000, #ff1744);
+      box-shadow: 0 0 10px rgba(255, 50, 50, 0.6);
+    }
+    .stop:hover {
+      transform: scale(1.05);
+      box-shadow: 0 0 20px rgba(255, 50, 50, 0.9);
+    }
+
+    /* History Section */
+    .history {
+      margin-top: 20px;
+      flex-grow: 1;
+      display: flex;
+      flex-direction: column;
+    }
+    .history h3 {
+      font-size: 18px;
+      margin-bottom: 8px;
+      color: #00e5ff;
+      text-align: center;
+      text-shadow: 0 0 10px #00e5ff;
+    }
+
+    .history-container {
+      max-height: 230px;
+      overflow-y: auto;
+      padding-right: 6px;
+    }
+    .history-item {
+      background: rgba(255,255,255,0.08);
+      padding: 10px 12px;
+      border-radius: 10px;
+      margin-bottom: 8px;
+      font-size: 14px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      transition: all 0.2s ease;
+      border: 1px solid rgba(255,255,255,0.15);
+    }
+    .history-item:hover {
+      transform: scale(1.02);
+      background: rgba(255,255,255,0.15);
+    }
+    .big { color: #00ff88; }
+    .small { color: #ff4444; }
+    .status-dot {
+      font-size: 18px;
+      margin-right: 5px;
+    }
+
+    /* Scrollbar style */
+    .history-container::-webkit-scrollbar {
+      width: 6px;
+    }
+    .history-container::-webkit-scrollbar-thumb {
+      background: #00ffcc;
+      border-radius: 4px;
+    }
+    .history-container::-webkit-scrollbar-track {
+      background: rgba(255,255,255,0.1);
+    }
+  </style>
+</head>
+<body>
+  <div class="card">
+    <div class="title">COLOR ZONE</div>
+    <div class="period">Next Period: <span id="period">--</span></div>
+    <div id="prediction" class="prediction">Waiting...</div>
+    <div class="confidence">Confidence: <span id="confidence">--</span></div>
+
+    <div class="buttons">
+      <button id="toggleBot" class="start" onclick="toggleBot()">▶ Start Bot</button>
+    </div>
+
+    <!-- ✅ Telegram Toggle Button -->
+    <div style="text-align:center; margin-top:10px;">
+      <button id="toggleTelegram" class="start" onclick="toggleTelegram()">🔔 Telegram: ON</button>
+    </div>
+
+    <div class="history">
+      <!-- ✅ Calculator Button -->
+      <div style="text-align:center; margin-bottom:10px;">
+        <a href="https://moneymanegementcalculator.netlify.app/" target="_blank">
+          <button class="start">Money Management</button>
+        </a>
+      </div>
+
+      <h3>Prediction History</h3>
+      <div id="historyList" class="history-container"></div>
+      <div id="statsBox" style="margin-top:12px; text-align:center; font-size:15px; color:#f7f200;">
+        Total: 0 | WIN: 0 | LOSS: 0
+      </div>
+
+      <!-- ✅ Confidence Trend Chart -->
+      <canvas id="confidenceChart" style="margin-top:15px; height:200px;"></canvas>
+    </div>
+  </div>
+
+  <!-- ✅ Bip সাউন্ড -->
+  <audio id="beepSound" src="https://actions.google.com/sounds/v1/alarms/beep_short.ogg"></audio>
+
+  <script>
+    let botInterval = null;
+    let lastFetched = null;
+    let historyData = [];
+    let telegramEnabled = true;
+    let canSendSignal = true;
+    let confidenceChart = null;
+
+    // ✅ Telegram Config
+    const BOT_TOKEN = "8417450493:AAEUVGDiJIA1-xMhUdDFVwaFbKtO4jnhnvc";
+    const CHAT_ID = "-1002765246201";
+
+    async function sendToTelegram(message) {
+      if (!telegramEnabled) return; 
+      try {
+        await fetch(`https://api.telegram.org/bot${BOT_TOKEN}/sendMessage`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            chat_id: CHAT_ID,
+            text: message,
+            parse_mode: "HTML"
+          })
+        });
+      } catch (err) {
+        console.error("Telegram error:", err);
+      }
+    }
+
+    function toggleTelegram() {
+      telegramEnabled = !telegramEnabled;
+      const btn = document.getElementById("toggleTelegram");
+      if (telegramEnabled) {
+        btn.textContent = "🔔 Telegram: ON";
+        btn.classList.remove("stop");
+        btn.classList.add("start");
+      } else {
+        btn.textContent = "🔕 Telegram: OFF";
+        btn.classList.remove("start");
+        btn.classList.add("stop");
+      }
+    }
+
+    // ✅ Init Chart
+    function initChart() {
+      const ctx = document.getElementById("confidenceChart").getContext("2d");
+      confidenceChart = new Chart(ctx, {
+        type: "line",
+        data: {
+          labels: [],
+          datasets: [{
+            label: "Confidence (%)",
+            data: [],
+            borderColor: "#00e5ff",
+            backgroundColor: "rgba(0, 229, 255, 0.2)",
+            borderWidth: 2,
+            fill: true,
+            tension: 0.3,
+            pointRadius: 5
+          }]
+        },
+        options: {
+          responsive: true,
+          plugins: { legend: { display: false } },
+          scales: { y: { beginAtZero: true, max: 100 } }
+        }
+      });
+    }
+
+    async function fetchData() {
+      try {
+        const ts = Date.now();
+        const url = `https://draw.ar-lottery01.com/WinGo/WinGo_1M/GetHistoryIssuePage.json?ts=${ts}`;
+        const res = await fetch(url);
+        const data = await res.json();
+        const latest = data?.data?.list?.[0];
+        if (!latest) return;
+
+        if (latest.issueNumber === lastFetched) return;
+        lastFetched = latest.issueNumber;
+
+        // Next Period
+        const nextPeriod = (BigInt(latest.issueNumber) + 1n).toString();
+        document.getElementById("period").textContent = nextPeriod;
+
+        // ✅ শেষ 40 টা হিস্টোরি দেখে ট্রেন্ড
+        const historyList = data?.data?.list?.slice(0, 40) || [];
+        let bigCount = 0, smallCount = 0;
+        historyList.forEach(item => {
+          let num = Number(item.number);
+          if (num >= 5) bigCount++;
+          else smallCount++;
+        });
+
+        // ✅ Prediction
+        let prediction = "BIG";
+        if (smallCount > bigCount) prediction = "SMALL";
+        else if (smallCount === bigCount) {
+          let lastNum = Number(historyList[0].number);
+          prediction = lastNum >= 5 ? "SMALL" : "BIG";
+        }
+
+        // ✅ Confidence %
+        let total = historyList.length;
+        let confidence = Math.round((Math.max(bigCount, smallCount) / total) * 100);
+
+        // Update UI
+        const predEl = document.getElementById("prediction");
+        predEl.textContent = prediction;
+        predEl.className = "prediction " + (prediction === "BIG" ? "big" : "small");
+        document.getElementById("confidence").textContent = confidence + "%";
+
+        // Update History Result
+        if (historyData.length > 0) {
+          let lastItem = historyData[0];
+          if (lastItem.resultStatus === "Waiting" && lastItem.period === latest.issueNumber) {
+            const actual = Number(latest.number) >= 5 ? "BIG" : "SMALL";
+            lastItem.actual = latest.number;
+            lastItem.resultStatus = (lastItem.prediction === actual) ? "WIN" : "LOSS";
+            canSendSignal = true;
+
+            const color = (Number(latest.number) % 2 === 0) ? "red" : "green";
+            const resultMsg = 
+`✅ Wingo Result
+━━━━━━━━━━━━━━
+📌 Period: ${latest.issueNumber}
+🔢 Number: ${latest.number}
+🎨 Color: ${color}
+🎯 Result: ${lastItem.resultStatus}
+━━━━━━━━━━━━━━`;
+            sendToTelegram(resultMsg);
+          }
+        }
+
+        // ✅ New Signal
+        if (canSendSignal) {
+          const newPrediction = {
+            period: nextPeriod,
+            prediction: prediction,
+            confidence: confidence,
+            resultStatus: "Waiting"
+          };
+          historyData.unshift(newPrediction);
+
+          const signalMsg =
+`🎯 Send Signal
+━━━━━━━━━━━━━━
+✅ 1M Market ✅
+📌 Prediction Period: ${nextPeriod}
+📊 Prediction Signal: ${prediction}
+📈 Confidence: ${confidence}%
+━━━━━━━━━━━━━━
+🔗 আমার সাপোর্ট লিংক (https://t.me/FORID0KSUPPORT)`;
+          sendToTelegram(signalMsg);
+          canSendSignal = false;
+        }
+
+        renderHistory();
+      } catch (err) {
+        console.error("API error:", err);
+      }
+    }
+
+    function renderHistory() {
+      const container = document.getElementById("historyList");
+      container.innerHTML = historyData.map(item => {
+        let dot = "🟡";
+        if (item.resultStatus === "WIN") dot = "🟢";
+        if (item.resultStatus === "LOSS") dot = "🔴";
+
+        return `
+          <div class="history-item">
+            <div>
+              <strong>${item.period}</strong><br>
+              Pred: <span class="${item.prediction.toLowerCase()}">${item.prediction}</span><br>
+              Conf: <span style="color:#ffd966;">${item.confidence || "--"}%</span>
+            </div>
+            <div>
+              <span class="status-dot">${dot}</span>${item.resultStatus}
+            </div>
+          </div>
+        `;
+      }).join("");
+
+      let total = historyData.length;
+      let win = historyData.filter(h => h.resultStatus === "WIN").length;
+      let loss = historyData.filter(h => h.resultStatus === "LOSS").length;
+
+      document.getElementById("statsBox").textContent =
+        `TOTAL: ${total} | WIN: ${win} | LOSS: ${loss}`;
+
+      // ✅ Update Chart
+      if (confidenceChart) {
+        const last10 = historyData.slice(0, 10).reverse();
+        confidenceChart.data.labels = last10.map(h => h.period);
+        confidenceChart.data.datasets[0].data = last10.map(h => h.confidence || 0);
+
+        confidenceChart.data.datasets[0].pointBackgroundColor = last10.map(h => {
+          if (h.resultStatus === "WIN") return "#00ff88";   // সবুজ
+          if (h.resultStatus === "LOSS") return "#ff4444";  // লাল
+          return "#ffd966"; // Waiting → হলুদ
+        });
+
+        confidenceChart.update();
+      }
+    }
+
+    function toggleBot() {
+      const btn = document.getElementById("toggleBot");
+
+      if (!botInterval) {
+        fetchData();
+        botInterval = setInterval(fetchData, 60000);
+        btn.textContent = "■ Stop Bot";
+        btn.classList.remove("start");
+        btn.classList.add("stop");
+      } else {
+        clearInterval(botInterval);
+        botInterval = null;
+        btn.textContent = "▶ Start Bot";
+        btn.classList.remove("stop");
+        btn.classList.add("start");
+      }
+    }
+
+    window.onload = function() {
+      initChart();
+    };
+  </script>
+</body>
+</html>
